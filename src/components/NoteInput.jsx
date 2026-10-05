@@ -1,5 +1,9 @@
 import React from 'react';
 
+const TITLE_MAX_LENGTH = 50;
+const TITLE_WARN_THRESHOLD = 10;
+const BODY_MIN_LENGTH = 10;
+
 class NoteInput extends React.Component {
   constructor(props) {
     super(props);
@@ -8,7 +12,8 @@ class NoteInput extends React.Component {
       // TODO [Basic] kelola nilai title sebagai controlled input.
       title: '',
       // TODO [Basic] kelola nilai body sebagai controlled textarea.
-      body: ''
+      body: '',
+      hasTriedSubmit: false,
     };
 
     this.onTitleChangeEventHandler = this.onTitleChangeEventHandler.bind(this);
@@ -19,12 +24,16 @@ class NoteInput extends React.Component {
   onTitleChangeEventHandler(event) {
     // TODO [Basic] update state dengan nilai event.target.value.
     // TODO [Skilled] batasi judul maksimal 50 karakter dan tampilkan peringatan saat sisa karakter < 10.
-    console.warn('[TODO] Handle title change', event.target.value);
+    this.setState({
+      title: event.target.value.slice(0, TITLE_MAX_LENGTH),
+    });
   }
 
   onBodyChangeEventHandler(event) {
     // TODO [Basic] update state body agar textarea menjadi controlled component.
-    console.warn('[TODO] Handle body change', event.target.value);
+    this.setState({
+      body: event.target.value,
+    });
   }
 
   onSubmitEventHandler(event) {
@@ -32,18 +41,40 @@ class NoteInput extends React.Component {
 
     // TODO [Basic] panggil props.addNote dengan data title & body dari state, lalu reset form.
     // TODO [Advanced] tolak submit ketika body kurang dari 10 karakter dan tampilkan pesan error.
-    console.warn('[TODO] Submit note', this.state);
+    const { title, body } = this.state;
+
+    if (body.length < BODY_MIN_LENGTH) {
+      this.setState({ hasTriedSubmit: true });
+      return;
+    }
+
+    this.props.addNote({ title, body });
+    this.setState({
+      title: '',
+      body: '',
+      hasTriedSubmit: false,
+    });
   }
 
   render() {
+    const { title, body, hasTriedSubmit } = this.state;
+
     // TODO [Skilled] hitung sisa karakter jika menerapkan limit 50 karakter.
-    const remainingChars = 100; // update dengan nilai yang sesuai
+    const remainingChars = TITLE_MAX_LENGTH - title.length;
+    const isNearLimit = remainingChars < TITLE_WARN_THRESHOLD;
+    const isBodyTooShort = body.length < BODY_MIN_LENGTH;
+    const showBodyError = isBodyTooShort && (body.length > 0 || hasTriedSubmit);
 
     return (
       <div className="note-input" data-testid="note-input">
         <h2>Buat catatan</h2>
 
         {/* // TODO [Advanced] tampilkan pesan error menggunakan elemen dengan class note-input__feedback--error. */}
+        {showBodyError && (
+          <p className="note-input__feedback note-input__feedback--error" role="alert">
+            Isi catatan minimal harus {BODY_MIN_LENGTH} karakter
+          </p>
+        )}
 
         <form
           onSubmit={this.onSubmitEventHandler}
@@ -51,7 +82,7 @@ class NoteInput extends React.Component {
         >
           {/* TODO [Skilled] tampilkan sisa karakter secara dinamis ketika limit judul diterapkan */}
           <p
-            className="note-input__title__char-limit"
+            className={`note-input__title__char-limit${isNearLimit ? ' note-input__title__char-limit--warn' : ''}`}
             data-testid="note-input-title-remaining"
           >
             Sisa karakter: {remainingChars}
@@ -60,7 +91,7 @@ class NoteInput extends React.Component {
             className="note-input__title"
             type="text"
             placeholder="Ini adalah judul ..."
-            value={this.state.title}
+            value={title}
             onChange={this.onTitleChangeEventHandler}
             required
             data-testid="note-input-title-field"
@@ -68,7 +99,7 @@ class NoteInput extends React.Component {
           <textarea
             className="note-input__body"
             placeholder="Tuliskan catatanmu di sini ..."
-            value={this.state.body}
+            value={body}
             onChange={this.onBodyChangeEventHandler}
             required
             data-testid="note-input-body-field"
